@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "76637446752",
+    "project_id": "wykrywaczswiatel",
+    "storage_bucket": "wykrywaczswiatel.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:76637446752:android:d1a80623e2b0a257271905",
+        "android_client_info": {
+          "package_name": "utp.edu.wykrywaczswiatel"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "76637446752-fs0rcnb5um6jee1pnrggphgphhn6gp1t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiIl4lQCNvr38bACs4FlRSIGjzpTrYVEM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "76637446752-fs0rcnb5um6jee1pnrggphgphhn6gp1t.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
