@@ -22,11 +22,11 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.ml.modeldownloader.CustomModel;
-import com.google.firebase.ml.modeldownloader.CustomModelDownloadConditions;
-import com.google.firebase.ml.modeldownloader.DownloadType;
-import com.google.firebase.ml.modeldownloader.FirebaseModelDownloader;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.ml.common.modeldownload.FirebaseModelDownloadConditions;
+import com.google.firebase.ml.common.modeldownload.FirebaseModelManager;
+import com.google.firebase.ml.custom.FirebaseCustomRemoteModel;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
@@ -46,6 +46,7 @@ import org.tensorflow.lite.task.vision.detector.ObjectDetector;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -147,7 +148,7 @@ public class MainActivity extends Activity {
 
         Scalar lower_green;
         Scalar upper_green;
-        lower_green = new Scalar(38, 10, 20);
+        lower_green = new Scalar(38, 20, 20);
         upper_green = new Scalar(85, 255, 255);
         Mat mask2 = new Mat();
         Core.inRange(img_hsv, lower_green, upper_green, mask2);
@@ -160,7 +161,7 @@ public class MainActivity extends Activity {
 
         Scalar lower_yellow;
         Scalar upper_yellow;
-        lower_yellow = new Scalar(15, 10, 20);
+        lower_yellow = new Scalar(10, 20, 20);
         upper_yellow = new Scalar(38, 255, 255);
         Mat mask1 = new Mat();
         Core.inRange(img_hsv, lower_yellow, upper_yellow, mask1);
@@ -173,8 +174,8 @@ public class MainActivity extends Activity {
 
         Scalar lower_red;
         Scalar upper_red;
-        lower_red = new Scalar(0, 10, 20);
-        upper_red = new Scalar(15, 255, 255);
+        lower_red = new Scalar(0, 20, 20);
+        upper_red = new Scalar(10, 255, 255);
         Mat mask0 = new Mat();
         Core.inRange(img_hsv, lower_red, upper_red, mask0);
         lower_red = new Scalar(165, 10, 20);
@@ -193,32 +194,41 @@ public class MainActivity extends Activity {
 
     private void InitModel()
     {
-        CustomModelDownloadConditions conditions = new CustomModelDownloadConditions.Builder()
+        FirebaseCustomRemoteModel rm = new FirebaseCustomRemoteModel.Builder("Traffic-Detector").build();
+        FirebaseModelDownloadConditions conditions = new FirebaseModelDownloadConditions.Builder()
                 .requireWifi()
                 .build();
-        /*FirebaseModelDownloader.getInstance()
-                .getModel("Traffic-Detector", DownloadType.LOCAL_MODEL, conditions)
-                .addOnSuccessListener(new OnSuccessListener<CustomModel>() {
+        FirebaseModelManager.getInstance().download(rm , conditions)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                     @Override
+                     public void onComplete(@NonNull Task<Void> task) {
+                FirebaseModelManager.getInstance().getLatestModelFile(rm)
+                .addOnCompleteListener(new OnCompleteListener<File>() {
                     @Override
-                    public void onSuccess(CustomModel model) {
-                        File modelFile = model.getFile();
-                        if (modelFile != null) {*/
-                            try {
-                                //Files.move(modelFile.toPath(), modelFile.toPath().resolveSibling("model.ftlite"));
-                           ObjectDetector.ObjectDetectorOptions options = ObjectDetector.ObjectDetectorOptions.builder()
+                    public void onComplete(@NonNull Task<File> task) {
+                        File modelFile = task.getResult();
+                        if (modelFile != null) {
+                            ObjectDetector.ObjectDetectorOptions options =
+                                    ObjectDetector.ObjectDetectorOptions.builder()
                                     .setScoreThreshold(0.5f)
                                     .setMaxResults(5)
                                     .build();
+                            try {
+                                ///data/data/utp.edu.wykrywaczswiatel/no_backup/com.google.firebase.ml.custom.models/W0RFRkFVTFRd+MTo3NjYzNzQ0Njc1MjphbmRyb2lkOmQxYTgwNjIzZTJiMGEyNTcyNzE5MDU/Traffic-Detector/0
+                                File model = new File("model.tflite");
+                                modelFile.renameTo(model);
+                                Log.d("Path",model.getPath());
                                 detector = ObjectDetector.createFromFileAndOptions(
-                                        getApplicationContext(), "model.tflite", /*modelFile.getPath()*/ options);
+                                        getApplicationContext(), model.getPath(), options);
+
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            /*Toast.makeText(getApplicationContext(), "Downoland file finish.", Toast.LENGTH_LONG).show();
-                            Log.d(TAG, "Downoland file finish.");
                         }
                     }
-                });*/
+                });
+             }
+        });
     }
 
     private void Detect() {
@@ -231,61 +241,52 @@ public class MainActivity extends Activity {
         tmp = TensorImage.fromBitmap(image);
 
         List<Detection> results = detector.detect(tmp);
-                    for (Detection detectedObject : results) {
-                        RectF boundingBox = detectedObject.getBoundingBox();
-                        result = result + boundingBox.toString() + "\n";
-                        for (Category label : detectedObject.getCategories()) {
-                            if (label.getIndex() == 9)
-                            {
-                                Utils.bitmapToMat(image.copy(Bitmap.Config.ARGB_8888, true), bmp);
-                                Mat out = new Mat(bmp, new Rect(Math.round(boundingBox.left), Math.round(boundingBox.top), Math.round(boundingBox.right-boundingBox.left), Math.round(boundingBox.bottom-boundingBox.top)));
-                                String info = "";
-                                Light l = GetLight(out);
-                                if (l == Light.LIGHT_GREEN)
-                                {
-                                    p.setStyle(Paint.Style.STROKE);
-                                    p.setColor(Color.GREEN);
-                                    p.setFilterBitmap(true);
-                                    canvas.drawRect(boundingBox, p);
-                                    info = "Light green!";
-                                }
-                                else if (l == Light.LIGHT_RED)
-                                {
-                                    p.setStyle(Paint.Style.STROKE);
-                                    p.setColor(Color.RED);
-                                    p.setFilterBitmap(true);
-                                    canvas.drawRect(boundingBox, p);
-                                    info = "Light red!";
-                                }
-                                else if (l == Light.LIGHT_YELLOW)
-                                {
-                                    p.setStyle(Paint.Style.STROKE);
-                                    p.setColor(Color.YELLOW);
-                                    p.setFilterBitmap(true);
-                                    canvas.drawRect(boundingBox, p);
-                                    info = "Light yellow!";
-                                }
-                                else if (l == Light.LIGHT_NULL)
-                                {
-                                    p.setStyle(Paint.Style.STROKE);
-                                    p.setColor(Color.DKGRAY);
-                                    p.setFilterBitmap(true);
-                                    canvas.drawRect(boundingBox, p);
-                                    info = "Light not detected!";
-                                }
-                                result = result + info + "\n";
-                            }
-                            String text = label.getLabel();
-                            int index = label.getIndex();
-                            float confidence = label.getScore();
-                            result = result + text + " " + String.valueOf(index) + " " + String.valueOf(confidence);
+            for (Detection detectedObject : results) {
+                RectF boundingBox = detectedObject.getBoundingBox();
+                result = result + boundingBox.toString() + "\n";
+                for (Category label : detectedObject.getCategories()) {
+                    if (label.getIndex() == 9) {
+                        Utils.bitmapToMat(image.copy(Bitmap.Config.ARGB_8888, true), bmp);
+                        Mat out = new Mat(bmp, new Rect(Math.round(boundingBox.left), Math.round(boundingBox.top), Math.round(boundingBox.right - boundingBox.left), Math.round(boundingBox.bottom - boundingBox.top)));
+                        String info = "";
+                        Light l = GetLight(out);
+                        if (l == Light.LIGHT_GREEN) {
+                            p.setStyle(Paint.Style.STROKE);
+                            p.setColor(Color.GREEN);
+                            p.setFilterBitmap(true);
+                            canvas.drawRect(boundingBox, p);
+                            info = "Light green!";
+                        } else if (l == Light.LIGHT_RED) {
+                            p.setStyle(Paint.Style.STROKE);
+                            p.setColor(Color.RED);
+                            p.setFilterBitmap(true);
+                            canvas.drawRect(boundingBox, p);
+                            info = "Light red!";
+                        } else if (l == Light.LIGHT_YELLOW) {
+                            p.setStyle(Paint.Style.STROKE);
+                            p.setColor(Color.YELLOW);
+                            p.setFilterBitmap(true);
+                            canvas.drawRect(boundingBox, p);
+                            info = "Light yellow!";
+                        } else if (l == Light.LIGHT_NULL) {
+                            p.setStyle(Paint.Style.STROKE);
+                            p.setColor(Color.DKGRAY);
+                            p.setFilterBitmap(true);
+                            canvas.drawRect(boundingBox, p);
+                            info = "Light not detected!";
                         }
-                        result = result + "\n\n";
+                        result = result + info + "\n";
                     }
-                    photo.setImageBitmap(out);
-                    photo.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                    //light.setText(result);
-
+                    String text = label.getLabel();
+                    int index = label.getIndex();
+                    float confidence = label.getScore();
+                    result = result + text + " " + String.valueOf(index) + " " + String.valueOf(confidence);
+                }
+                result = result + "\n\n";
+            }
+            photo.setImageBitmap(out);
+            photo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            //light.setText(result);
     }
 
     public void NewImage(View view) {

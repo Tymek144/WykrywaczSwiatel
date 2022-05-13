@@ -4,6 +4,11 @@ plugins {
 }
 
 android {
+    aaptOptions {
+        noCompress "tflite"
+        noCompress "lite"
+    }
+
     compileSdkVersion 30
     buildToolsVersion "30.0.3"
 
@@ -31,26 +36,23 @@ android {
         mlModelBinding true
         viewBinding true
     }
-
-    aaptOptions {
-        noCompress "tflite"
-        noCompress "lite"
-    }
 }
 
 dependencies {
+    def room_version = "2.3.0"
+
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
 
     implementation 'com.quickbirdstudios:opencv:3.4.5'
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'com.google.android.material:material:1.2.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.1'
-    implementation platform('com.google.firebase:firebase-bom:29.3.1')
-    implementation 'com.google.firebase:firebase-analytics'
-    implementation 'com.google.mlkit:linkfirebase:17.0.0'
-    implementation 'org.tensorflow:tensorflow-lite-support:0.1.0'
-    implementation 'org.tensorflow:tensorflow-lite-metadata:0.1.0'
+    implementation platform('com.google.firebase:firebase-bom:30.0.0')
+    implementation 'com.google.firebase:firebase-ml-model-interpreter:22.0.2'
     implementation 'org.tensorflow:tensorflow-lite-task-vision:0.2.0'
-    implementation 'com.google.firebase:firebase-ml-modeldownloader:24.0.3'
+    implementation 'org.tensorflow:tensorflow-lite-metadata:0.1.0-rc2'
+    implementation 'com.google.mlkit:common:18.3.0'
     implementation 'androidx.navigation:navigation-fragment:2.3.5'
     implementation 'androidx.navigation:navigation-ui:2.3.5'
     implementation 'androidx.camera:camera-core:1.0.0'
