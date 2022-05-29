@@ -11,7 +11,7 @@ import java.util.Date;
 import java.util.List;
 
 @Dao
-@TypeConverters(DateConverter.class)
+@TypeConverters({DateConverter.class, UriConverters.class})
 public interface LightResultsDao {
     @Query("SELECT * FROM LightResults")
     List<LightResults> getAll();
@@ -19,12 +19,15 @@ public interface LightResultsDao {
     @Query("SELECT * FROM LightResults WHERE uid IN (:lightIds)")
     List<LightResults> loadAllByIds(int[] lightIds);
 
+    @Query("SELECT * FROM LightResults WHERE uid IN (:lightId)")
+    LightResults loadById(int lightId);
+
     @Query("SELECT * FROM LightResults WHERE date LIKE :data " +
             "LIMIT 1")
     LightResults findByDateTime(Date data);
 
     @Insert
-    void insertAll(LightResults... users);
+    void insertAll(LightResults... lights);
 
     @Delete
     void delete(LightResults lightResults);

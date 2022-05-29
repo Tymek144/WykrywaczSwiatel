@@ -3,8 +3,11 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/Karol/AndroidStudioProjects/WykrywaczSwiatel/app/src/main/res/layout/activity_baza_wykrytych_swiatel.xml" value="0.1" />
+        <entry key="..\:/Users/Karol/AndroidStudioProjects/WykrywaczSwiatel/app/src/main/res/layout/activity_baza_wykrywacz_swiatel.xml" value="0.18" />
         <entry key="..\:/Users/Karol/AndroidStudioProjects/WykrywaczSwiatel/app/src/main/res/layout/activity_main.xml" value="0.17604166666666668" />
         <entry key="..\:/Users/Karol/AndroidStudioProjects/WykrywaczSwiatel/app/src/main/res/layout/activity_photo_details.xml" value="0.17291666666666666" />
+        <entry key="..\:/Users/Karol/AndroidStudioProjects/WykrywaczSwiatel/app/src/main/res/layout/content_scrolling.xml" value="0.1" />
         <entry key="..\:/Users/Karol/AndroidStudioProjects/WykrywaczSwiatel/app/src/main/res/layout/fragment_first.xml" value="0.17291666666666666" />
       </map>
     </option>

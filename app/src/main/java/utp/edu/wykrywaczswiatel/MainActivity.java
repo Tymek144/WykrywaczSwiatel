@@ -50,14 +50,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-enum Light {
-    LIGHT_NULL,
-    LIGHT_RED,
-    LIGHT_GREEN,
-    LIGHT_YELLOW
-
-        }
-
 public class MainActivity extends Activity {
 
     private static final String TAG = "";
@@ -66,16 +58,19 @@ public class MainActivity extends Activity {
     private Bitmap out;
     private ImageView photo;
     //private TextView light;
-    public static String result;
+    public String result;
     public static TensorImage tmp;
     public Mat bmp;
     private Canvas canvas;
+
+    private RoomConnect roomConnect;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        roomConnect= new RoomConnect(this);
         photo = (ImageView) findViewById(R.id.photo);
         //light = (TextView) findViewById(R.id.light);
         InitModel();
@@ -112,6 +107,7 @@ public class MainActivity extends Activity {
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
     private static final int MY_CAMERA_PERMISSION_CODE = 100;
+    private static final int MY_STORGE_PERMISSION_CODE = 101;
 
     private void dispatchTakePictureIntent() {
         Intent takePicture = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -133,7 +129,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private Light GetLight(Mat bmp1)
+    private LightResults.Light GetLight(Mat bmp1)
     {
         Mat img = new Mat();
         Size desired_dim = new Size(30, 60);
@@ -148,34 +144,36 @@ public class MainActivity extends Activity {
 
         Scalar lower_green;
         Scalar upper_green;
-        lower_green = new Scalar(38, 20, 20);
+        lower_green = new Scalar(38, 10, 20);
         upper_green = new Scalar(85, 255, 255);
         Mat mask2 = new Mat();
         Core.inRange(img_hsv, lower_green, upper_green, mask2);
 
-        rate = (float) (Core.countNonZero(mask2)/(desired_dim.height * desired_dim.width));
-        if (rate >= 0.01)
+        Mat circle = new Mat();
+        Imgproc.HoughCircles(mask2, circle, Imgproc.HOUGH_GRADIENT, 1, mask2.rows()/10, 200, 10, 0,0);
+        if (!circle.empty())
         {
-            return Light.LIGHT_GREEN;
+            return LightResults.Light.LIGHT_GREEN;
         }
 
         Scalar lower_yellow;
         Scalar upper_yellow;
-        lower_yellow = new Scalar(10, 20, 20);
+        lower_yellow = new Scalar(13, 10, 20);
         upper_yellow = new Scalar(38, 255, 255);
         Mat mask1 = new Mat();
         Core.inRange(img_hsv, lower_yellow, upper_yellow, mask1);
 
-        rate = (float) (Core.countNonZero(mask1)/(desired_dim.height * desired_dim.width));
-        if (rate >= 0.01)
+        circle = new Mat();
+        Imgproc.HoughCircles(mask1, circle, Imgproc.HOUGH_GRADIENT, 1, mask1.rows()/10, 200, 10, 0,0);
+        if (!circle.empty())
         {
-            return Light.LIGHT_YELLOW;
+            return LightResults.Light.LIGHT_YELLOW;
         }
 
         Scalar lower_red;
         Scalar upper_red;
-        lower_red = new Scalar(0, 20, 20);
-        upper_red = new Scalar(10, 255, 255);
+        lower_red = new Scalar(0, 10, 20);
+        upper_red = new Scalar(13, 255, 255);
         Mat mask0 = new Mat();
         Core.inRange(img_hsv, lower_red, upper_red, mask0);
         lower_red = new Scalar(165, 10, 20);
@@ -184,51 +182,59 @@ public class MainActivity extends Activity {
         Core.inRange(img_hsv, lower_red, upper_red, mask0a);
         Mat mask = new Mat();
         Core.subtract(mask0, mask0a, mask);
-        rate = (float) (Core.countNonZero(mask)/(desired_dim.height * desired_dim.width));
-        if (rate >= 0.01)
+
+        circle = new Mat();
+        Imgproc.HoughCircles(mask, circle, Imgproc.HOUGH_GRADIENT, 1, mask.rows()/10, 200, 10, 0,0);
+        if (!circle.empty())
         {
-            return Light.LIGHT_RED;
+            return LightResults.Light.LIGHT_RED;
         }
-        return Light.LIGHT_NULL;
+        return LightResults.Light.LIGHT_NULL;
     }
 
-    private void InitModel()
-    {
+    private void InitModel() {
         FirebaseCustomRemoteModel rm = new FirebaseCustomRemoteModel.Builder("Traffic-Detector").build();
         FirebaseModelDownloadConditions conditions = new FirebaseModelDownloadConditions.Builder()
                 .requireWifi()
                 .build();
-        FirebaseModelManager.getInstance().download(rm , conditions)
+        FirebaseModelManager.getInstance().download(rm, conditions)
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
-                     @Override
-                     public void onComplete(@NonNull Task<Void> task) {
-                FirebaseModelManager.getInstance().getLatestModelFile(rm)
-                .addOnCompleteListener(new OnCompleteListener<File>() {
                     @Override
-                    public void onComplete(@NonNull Task<File> task) {
-                        File modelFile = task.getResult();
-                        if (modelFile != null) {
-                            ObjectDetector.ObjectDetectorOptions options =
-                                    ObjectDetector.ObjectDetectorOptions.builder()
-                                    .setScoreThreshold(0.5f)
-                                    .setMaxResults(5)
-                                    .build();
-                            try {
-                                ///data/data/utp.edu.wykrywaczswiatel/no_backup/com.google.firebase.ml.custom.models/W0RFRkFVTFRd+MTo3NjYzNzQ0Njc1MjphbmRyb2lkOmQxYTgwNjIzZTJiMGEyNTcyNzE5MDU/Traffic-Detector/0
-                                File model = new File("model.tflite");
-                                modelFile.renameTo(model);
-                                Log.d("Path",model.getPath());
-                                detector = ObjectDetector.createFromFileAndOptions(
-                                        getApplicationContext(), model.getPath(), options);
+                    public void onComplete(@NonNull Task<Void> task) {
+                        FirebaseModelManager.getInstance().getLatestModelFile(rm)
+                                .addOnCompleteListener(new OnCompleteListener<File>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<File> task) {
+                                        File modelFile = task.getResult();
+                                        if (modelFile != null) {
+                                            ObjectDetector.ObjectDetectorOptions options =
+                                                    ObjectDetector.ObjectDetectorOptions.builder()
+                                                            .setScoreThreshold(0.5f)
+                                                            .setMaxResults(5)
+                                                            .build();
+                                            try {
+                                                ///data/data/utp.edu.wykrywaczswiatel/no_backup/com.google.firebase.ml.custom.models/W0RFRkFVTFRd+MTo3NjYzNzQ0Njc1MjphbmRyb2lkOmQxYTgwNjIzZTJiMGEyNTcyNzE5MDU/Traffic-Detector/0
+                                                File model = new File("model.tflite");
+                                                modelFile.renameTo(model);
+                                                Log.d("Path", model.getPath());
+                                                detector = ObjectDetector.createFromFileAndOptions(
+                                                        getApplicationContext(), model.getPath(), options);
 
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
+                                            } catch (IOException e) {
+                                                e.printStackTrace();
+                                            }
+                                        }
+                                    }
+                                });
                     }
                 });
-             }
-        });
+    }
+
+    private void SaveOdp(Bitmap bitmap, RectF rect, LightResults.Light light)
+    {
+        Bitmap bmp = Bitmap.createBitmap(bitmap, Math.round(rect.left), Math.round(rect.top),
+                Math.round(rect.right - rect.left), Math.round(rect.bottom - rect.top));
+        roomConnect.SaveResult(bmp, light);
     }
 
     private void Detect() {
@@ -247,28 +253,29 @@ public class MainActivity extends Activity {
                 for (Category label : detectedObject.getCategories()) {
                     if (label.getIndex() == 9) {
                         Utils.bitmapToMat(image.copy(Bitmap.Config.ARGB_8888, true), bmp);
-                        Mat out = new Mat(bmp, new Rect(Math.round(boundingBox.left), Math.round(boundingBox.top), Math.round(boundingBox.right - boundingBox.left), Math.round(boundingBox.bottom - boundingBox.top)));
+                        Mat out = new Mat(bmp, new Rect(Math.round(boundingBox.left), Math.round(boundingBox.top),
+                                Math.round(boundingBox.right - boundingBox.left), Math.round(boundingBox.bottom - boundingBox.top)));
                         String info = "";
-                        Light l = GetLight(out);
-                        if (l == Light.LIGHT_GREEN) {
+                        LightResults.Light l = GetLight(out);
+                        if (l == LightResults.Light.LIGHT_GREEN) {
                             p.setStyle(Paint.Style.STROKE);
                             p.setColor(Color.GREEN);
                             p.setFilterBitmap(true);
                             canvas.drawRect(boundingBox, p);
                             info = "Light green!";
-                        } else if (l == Light.LIGHT_RED) {
+                        } else if (l == LightResults.Light.LIGHT_RED) {
                             p.setStyle(Paint.Style.STROKE);
                             p.setColor(Color.RED);
                             p.setFilterBitmap(true);
                             canvas.drawRect(boundingBox, p);
                             info = "Light red!";
-                        } else if (l == Light.LIGHT_YELLOW) {
+                        } else if (l == LightResults.Light.LIGHT_YELLOW) {
                             p.setStyle(Paint.Style.STROKE);
                             p.setColor(Color.YELLOW);
                             p.setFilterBitmap(true);
                             canvas.drawRect(boundingBox, p);
                             info = "Light yellow!";
-                        } else if (l == Light.LIGHT_NULL) {
+                        } else if (l == LightResults.Light.LIGHT_NULL) {
                             p.setStyle(Paint.Style.STROKE);
                             p.setColor(Color.DKGRAY);
                             p.setFilterBitmap(true);
@@ -276,6 +283,7 @@ public class MainActivity extends Activity {
                             info = "Light not detected!";
                         }
                         result = result + info + "\n";
+                        SaveOdp(image, boundingBox, l);
                     }
                     String text = label.getLabel();
                     int index = label.getIndex();
@@ -298,13 +306,18 @@ public class MainActivity extends Activity {
         {
             requestPermissions(new String[]{Manifest.permission.CAMERA}, MY_CAMERA_PERMISSION_CODE);
         }
-        else {
+        else
+        {
             dispatchTakePictureIntent();
+        }
+        if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+            || checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, MY_STORGE_PERMISSION_CODE);
         }
     }
 
     public void NextView(View view) {
-        Intent intent = new Intent(this, photoDetails.class);
+        Intent intent = new Intent(this, BazaWykrywaczSwiatel.class);
         startActivity(intent);
     }
 
@@ -323,6 +336,17 @@ public class MainActivity extends Activity {
             else
             {
                 Toast.makeText(this, "Brak uprawnień dla aparatu!", Toast.LENGTH_LONG).show();
+            }
+        }
+        if (requestCode == MY_STORGE_PERMISSION_CODE)
+        {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
+            {
+                Toast.makeText(this, "Uprawnienia przyznane dla katalogu.", Toast.LENGTH_LONG).show();
+            }
+            else
+            {
+                Toast.makeText(this, "Brak uprawnień dla katalogu!", Toast.LENGTH_LONG).show();
             }
         }
     }
