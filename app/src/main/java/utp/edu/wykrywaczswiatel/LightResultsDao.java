@@ -3,6 +3,7 @@ package utp.edu.wykrywaczswiatel;
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.TypeConverters;
 
@@ -26,7 +27,7 @@ public interface LightResultsDao {
             "LIMIT 1")
     LightResults findByDateTime(Date data);
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(LightResults... lights);
 
     @Delete

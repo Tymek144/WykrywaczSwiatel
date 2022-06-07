@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 
 public class RoomConnect extends Application {
 
@@ -45,8 +44,15 @@ public class RoomConnect extends Application {
 
     public void SaveResult(Bitmap result, LightResults.Light type)
     {
-        List<LightResults> lights = lightResultsDao.getAll();
-        int max= lights.size();
+        LightResults lightResults = new LightResults();
+
+        lightResults.light = type;
+        lightResults.date = Calendar.getInstance().getTime();
+        lightResults.path = Uri.EMPTY;
+
+        lightResultsDao.insertAll(lightResults);
+
+        int max= lightResultsDao.getAll().get(lightResultsDao.getAll().size()-1).uid;
 
         OutputStream out = null;
 
@@ -68,10 +74,9 @@ public class RoomConnect extends Application {
             e.printStackTrace();
         }
 
-
-        LightResults lightResults = new LightResults();
         lightResults.path = Uri.parse(f.getAbsolutePath());
         lightResults.light = type;
+        lightResults.uid = max;
         lightResults.date = Calendar.getInstance().getTime();
         lightResultsDao.insertAll(lightResults);
     }

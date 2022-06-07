@@ -131,16 +131,11 @@ public class MainActivity extends Activity {
 
     private LightResults.Light GetLight(Mat bmp1)
     {
-        Mat img = new Mat();
-        Size desired_dim = new Size(30, 60);
-        Imgproc.resize(bmp1, img, desired_dim);
-
-        Imgproc.blur(img, img, new Size(3, 3));
-
+        Mat img, out, blur, bgr, grey;
         Mat img_hsv = new Mat();
-        Imgproc.cvtColor(img, img_hsv, Imgproc.COLOR_RGB2HSV_FULL);
+        Imgproc.cvtColor(bmp1, img_hsv, Imgproc.COLOR_RGB2HSV);
 
-        float rate;
+        Imgproc.medianBlur(img_hsv, img_hsv, 5);
 
         Scalar lower_green;
         Scalar upper_green;
@@ -149,8 +144,18 @@ public class MainActivity extends Activity {
         Mat mask2 = new Mat();
         Core.inRange(img_hsv, lower_green, upper_green, mask2);
 
+        out = new Mat();
+        blur = new Mat();
+        bgr =new Mat();
+        grey =new Mat();
+        img = bmp1.clone();
+        Core.bitwise_and(img, img, out, mask2);
+        Imgproc.medianBlur(out, blur, 5);
+        //Imgproc.cvtColor(blur, bgr, Imgproc.COLOR_HSV2BGR);
+        Imgproc.cvtColor(blur, grey, Imgproc.COLOR_BGR2GRAY);
+
         Mat circle = new Mat();
-        Imgproc.HoughCircles(mask2, circle, Imgproc.HOUGH_GRADIENT, 1, mask2.rows()/10, 200, 10, 0,0);
+        Imgproc.HoughCircles(grey, circle, Imgproc.HOUGH_GRADIENT, 1, mask2.height(),  mask2.channels(), 0.85f, mask2.width()/4, mask2.width());
         if (!circle.empty())
         {
             return LightResults.Light.LIGHT_GREEN;
@@ -158,13 +163,23 @@ public class MainActivity extends Activity {
 
         Scalar lower_yellow;
         Scalar upper_yellow;
-        lower_yellow = new Scalar(13, 10, 20);
+        lower_yellow = new Scalar(15, 10, 20);
         upper_yellow = new Scalar(38, 255, 255);
         Mat mask1 = new Mat();
         Core.inRange(img_hsv, lower_yellow, upper_yellow, mask1);
 
+        out = new Mat();
+        blur = new Mat();
+        bgr =new Mat();
+        grey =new Mat();
+        img = bmp1.clone();
+        Core.bitwise_and(img, img, out, mask1);
+        Imgproc.medianBlur(out, blur, 5);
+        //Imgproc.cvtColor(blur, bgr, Imgproc.COLOR_HSV2BGR);
+        Imgproc.cvtColor(blur, grey, Imgproc.COLOR_BGR2GRAY);
+
         circle = new Mat();
-        Imgproc.HoughCircles(mask1, circle, Imgproc.HOUGH_GRADIENT, 1, mask1.rows()/10, 200, 10, 0,0);
+        Imgproc.HoughCircles(grey, circle, Imgproc.HOUGH_GRADIENT, 1, mask1.height(), mask1.channels(), 0.85f, mask1.width()/4, mask1.width());
         if (!circle.empty())
         {
             return LightResults.Light.LIGHT_YELLOW;
@@ -173,7 +188,7 @@ public class MainActivity extends Activity {
         Scalar lower_red;
         Scalar upper_red;
         lower_red = new Scalar(0, 10, 20);
-        upper_red = new Scalar(13, 255, 255);
+        upper_red = new Scalar(15, 255, 255);
         Mat mask0 = new Mat();
         Core.inRange(img_hsv, lower_red, upper_red, mask0);
         lower_red = new Scalar(165, 10, 20);
@@ -183,8 +198,18 @@ public class MainActivity extends Activity {
         Mat mask = new Mat();
         Core.subtract(mask0, mask0a, mask);
 
+        out = new Mat();
+        blur = new Mat();
+        bgr =new Mat();
+        grey =new Mat();
+        img = bmp1.clone();
+        Core.bitwise_and(img, img, out, mask);
+        Imgproc.medianBlur(out, blur, 5);
+        //Imgproc.cvtColor(blur, bgr, Imgproc.COLOR_HSV2BGR);
+        Imgproc.cvtColor(blur, grey, Imgproc.COLOR_BGR2GRAY);
+
         circle = new Mat();
-        Imgproc.HoughCircles(mask, circle, Imgproc.HOUGH_GRADIENT, 1, mask.rows()/10, 200, 10, 0,0);
+        Imgproc.HoughCircles(grey, circle, Imgproc.HOUGH_GRADIENT, 1, mask.height(), mask.channels(), 0.85f, mask.width()/4, mask.width());
         if (!circle.empty())
         {
             return LightResults.Light.LIGHT_RED;
