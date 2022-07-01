@@ -12,4 +12,5 @@ public final class LightData {
     public Date data;
     public int id;
     public LightResults.Light light;
+    public float lightness;
 }

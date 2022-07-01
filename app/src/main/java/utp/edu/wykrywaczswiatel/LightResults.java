@@ -45,4 +45,7 @@ public class LightResults {
             return value;
         }
     }
+
+    @ColumnInfo(name = "lightness")
+    public float lightness;
 }

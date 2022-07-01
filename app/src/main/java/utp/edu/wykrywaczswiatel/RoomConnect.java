@@ -42,7 +42,7 @@ public class RoomConnect extends Application {
         lightResultsDao = db.lightResultsDao();
     }
 
-    public void SaveResult(Bitmap result, LightResults.Light type)
+    public void SaveResult(Bitmap result, LightResults.Light type, float lightness)
     {
         LightResults lightResults = new LightResults();
 
@@ -78,6 +78,7 @@ public class RoomConnect extends Application {
         lightResults.light = type;
         lightResults.uid = max;
         lightResults.date = Calendar.getInstance().getTime();
+        lightResults.lightness = lightness;
         lightResultsDao.insertAll(lightResults);
     }
 
@@ -92,6 +93,7 @@ public class RoomConnect extends Application {
         lightData.light = lightResults.light;
         lightData.data = lightResults.date;
         lightData.id = lightResults.uid;
+        lightData.lightness = lightResults.lightness;
         return lightData;
     }
 
@@ -105,6 +107,7 @@ public class RoomConnect extends Application {
         lightData.light = lightResults.light;
         lightData.data = lightResults.date;
         lightData.id = lightResults.uid;
+        lightData.lightness = lightResults.lightness;
         return lightData;
     }
 
@@ -122,6 +125,7 @@ public class RoomConnect extends Application {
             lightData.light = lightResults.light;
             lightData.data = lightResults.date;
             lightData.id = lightResults.uid;
+            lightData.lightness = lightResults.lightness;
             ld.add(lightData);
         }
         return ld;

@@ -6,13 +6,19 @@ import androidx.annotation.RequiresApi;
 import android.Manifest;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -33,7 +39,9 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -62,8 +70,29 @@ public class MainActivity extends Activity {
     public static TensorImage tmp;
     public Mat bmp;
     private Canvas canvas;
+    private float lightness;
 
     private RoomConnect roomConnect;
+
+    private static Bitmap getCropBitmapByRectF(Bitmap source, RectF cropRectF) {
+        Bitmap resultBitmap = Bitmap.createBitmap(Math.round(cropRectF.width()),
+                Math.round(cropRectF.height()), Bitmap.Config.ARGB_8888);
+        Canvas cavas = new Canvas(resultBitmap);
+
+        // draw background
+        Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG);
+        paint.setColor(Color.WHITE);
+        cavas.drawRect(//from  w w  w. ja v  a  2s. c  om
+                new RectF(0, 0, cropRectF.width(), cropRectF.height()),
+                paint);
+
+        Matrix matrix = new Matrix();
+        matrix.postTranslate(-cropRectF.left, -cropRectF.top);
+
+        cavas.drawBitmap(source.copy(Bitmap.Config.ARGB_8888, true), matrix, paint);
+
+        return resultBitmap;
+    }
 
 
     @Override
@@ -73,6 +102,23 @@ public class MainActivity extends Activity {
         roomConnect= new RoomConnect(this);
         photo = (ImageView) findViewById(R.id.photo);
         //light = (TextView) findViewById(R.id.light);
+        SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        Sensor sl = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        sensorManager.registerListener(new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent event) {
+                if (event.sensor.getType() == Sensor.TYPE_LIGHT)
+                {
+                    lightness = event.values[0];
+                }
+            }
+
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+            }
+        }, sl, SensorManager.SENSOR_DELAY_NORMAL);
+
         InitModel();
     }
 
@@ -131,87 +177,78 @@ public class MainActivity extends Activity {
 
     private LightResults.Light GetLight(Mat bmp1)
     {
-        Mat img, out, blur, bgr, grey;
         Mat img_hsv = new Mat();
-        Imgproc.cvtColor(bmp1, img_hsv, Imgproc.COLOR_RGB2HSV);
+        Imgproc.cvtColor(bmp1, img_hsv, Imgproc.COLOR_BGR2HSV);
 
-        Imgproc.medianBlur(img_hsv, img_hsv, 5);
+        //Imgproc.medianBlur(img_hsv, img_hsv, 5);
 
         Scalar lower_green;
         Scalar upper_green;
-        lower_green = new Scalar(38, 10, 20);
+        lower_green = new Scalar(35, 10, 150);
         upper_green = new Scalar(85, 255, 255);
         Mat mask2 = new Mat();
         Core.inRange(img_hsv, lower_green, upper_green, mask2);
 
-        out = new Mat();
-        blur = new Mat();
-        bgr =new Mat();
-        grey =new Mat();
-        img = bmp1.clone();
-        Core.bitwise_and(img, img, out, mask2);
-        Imgproc.medianBlur(out, blur, 5);
-        //Imgproc.cvtColor(blur, bgr, Imgproc.COLOR_HSV2BGR);
-        Imgproc.cvtColor(blur, grey, Imgproc.COLOR_BGR2GRAY);
-
         Mat circle = new Mat();
-        Imgproc.HoughCircles(grey, circle, Imgproc.HOUGH_GRADIENT, 1, mask2.height(),  mask2.channels(), 0.85f, mask2.width()/4, mask2.width());
+        Imgproc.HoughCircles(mask2, circle, Imgproc.HOUGH_GRADIENT, 1, mask2.width(),  255, 10.f, mask2.width()/8, mask2.width()/2);
         if (!circle.empty())
         {
+            for (int i = 0; i < circle.cols(); i++ ) {
+                double[] data = circle.get(0, i);
+                Point center = new Point(Math.round(data[0]), Math.round(data[1]));
+                // circle outline
+                int radius = (int) Math.round(data[2]);
+                Imgproc.circle(bmp1, center, radius, new Scalar(0,255,255), 3, 8, 0 );
+            }
             return LightResults.Light.LIGHT_GREEN;
         }
 
         Scalar lower_yellow;
         Scalar upper_yellow;
-        lower_yellow = new Scalar(15, 10, 20);
-        upper_yellow = new Scalar(38, 255, 255);
+        lower_yellow = new Scalar(15, 10, 150);
+        upper_yellow = new Scalar(35, 255, 255);
         Mat mask1 = new Mat();
         Core.inRange(img_hsv, lower_yellow, upper_yellow, mask1);
 
-        out = new Mat();
-        blur = new Mat();
-        bgr =new Mat();
-        grey =new Mat();
-        img = bmp1.clone();
-        Core.bitwise_and(img, img, out, mask1);
-        Imgproc.medianBlur(out, blur, 5);
-        //Imgproc.cvtColor(blur, bgr, Imgproc.COLOR_HSV2BGR);
-        Imgproc.cvtColor(blur, grey, Imgproc.COLOR_BGR2GRAY);
-
         circle = new Mat();
-        Imgproc.HoughCircles(grey, circle, Imgproc.HOUGH_GRADIENT, 1, mask1.height(), mask1.channels(), 0.85f, mask1.width()/4, mask1.width());
+        Imgproc.HoughCircles(mask1, circle, Imgproc.HOUGH_GRADIENT, 1, mask1.width(), 255, 10.0f, mask1.width()/8, mask1.width()/2);
         if (!circle.empty())
         {
+            for (int i = 0; i < circle.cols(); i++ ) {
+                double[] data = circle.get(0, i);
+                Point center = new Point(Math.round(data[0]), Math.round(data[1]));
+                // circle outline
+                int radius = (int) Math.round(data[2]);
+                Imgproc.circle(bmp1, center, radius, new Scalar(0,255,255), 3, 8, 0 );
+            }
             return LightResults.Light.LIGHT_YELLOW;
         }
 
         Scalar lower_red;
         Scalar upper_red;
-        lower_red = new Scalar(0, 10, 20);
+        lower_red = new Scalar(0, 10, 150);
         upper_red = new Scalar(15, 255, 255);
         Mat mask0 = new Mat();
         Core.inRange(img_hsv, lower_red, upper_red, mask0);
-        lower_red = new Scalar(165, 10, 20);
+        lower_red = new Scalar(165, 10, 150);
         upper_red = new Scalar(180, 225, 255);
         Mat mask0a = new Mat();
         Core.inRange(img_hsv, lower_red, upper_red, mask0a);
         Mat mask = new Mat();
-        Core.subtract(mask0, mask0a, mask);
-
-        out = new Mat();
-        blur = new Mat();
-        bgr =new Mat();
-        grey =new Mat();
-        img = bmp1.clone();
-        Core.bitwise_and(img, img, out, mask);
-        Imgproc.medianBlur(out, blur, 5);
-        //Imgproc.cvtColor(blur, bgr, Imgproc.COLOR_HSV2BGR);
-        Imgproc.cvtColor(blur, grey, Imgproc.COLOR_BGR2GRAY);
+        Core.bitwise_or(mask0, mask0a, mask);
+        //Core.subtract(mask0, mask0a, mask);
 
         circle = new Mat();
-        Imgproc.HoughCircles(grey, circle, Imgproc.HOUGH_GRADIENT, 1, mask.height(), mask.channels(), 0.85f, mask.width()/4, mask.width());
+        Imgproc.HoughCircles(mask, circle, Imgproc.HOUGH_GRADIENT, 1, mask.height(), 255, 10.0f, mask.width()/8, mask.width()/2);
         if (!circle.empty())
         {
+            for (int i = 0; i < circle.cols(); i++ ) {
+                double[] data = circle.get(0, i);
+                Point center = new Point(Math.round(data[0]), Math.round(data[1]));
+                // circle outline
+                int radius = (int) Math.round(data[2]);
+                Imgproc.circle(bmp1, center, radius, new Scalar(0,255,255), 3, 8, 0 );
+            }
             return LightResults.Light.LIGHT_RED;
         }
         return LightResults.Light.LIGHT_NULL;
@@ -220,7 +257,7 @@ public class MainActivity extends Activity {
     private void InitModel() {
         FirebaseCustomRemoteModel rm = new FirebaseCustomRemoteModel.Builder("Traffic-Detector").build();
         FirebaseModelDownloadConditions conditions = new FirebaseModelDownloadConditions.Builder()
-                .requireWifi()
+                //.requireWifi()
                 .build();
         FirebaseModelManager.getInstance().download(rm, conditions)
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
@@ -257,9 +294,9 @@ public class MainActivity extends Activity {
 
     private void SaveOdp(Bitmap bitmap, RectF rect, LightResults.Light light)
     {
-        Bitmap bmp = Bitmap.createBitmap(bitmap, Math.round(rect.left), Math.round(rect.top),
-                Math.round(rect.right - rect.left), Math.round(rect.bottom - rect.top));
-        roomConnect.SaveResult(bmp, light);
+        /*Bitmap bmp = Bitmap.createBitmap(bitmap, Math.round(rect.left), Math.round(rect.top),
+                Math.round(rect.right - rect.left), Math.round(rect.bottom - rect.top));*/
+        roomConnect.SaveResult(/*bmp*/bitmap, light, lightness);
     }
 
     private void Detect() {
@@ -277,11 +314,15 @@ public class MainActivity extends Activity {
                 result = result + boundingBox.toString() + "\n";
                 for (Category label : detectedObject.getCategories()) {
                     if (label.getIndex() == 9) {
-                        Utils.bitmapToMat(image.copy(Bitmap.Config.ARGB_8888, true), bmp);
-                        Mat out = new Mat(bmp, new Rect(Math.round(boundingBox.left), Math.round(boundingBox.top),
-                                Math.round(boundingBox.right - boundingBox.left), Math.round(boundingBox.bottom - boundingBox.top)));
+                        Bitmap crop = getCropBitmapByRectF(image, boundingBox);
+                        bmp = new Mat(crop.getWidth(), crop.getHeight(), CvType.CV_8U, new Scalar(4));
+                        Utils.bitmapToMat(crop.copy(Bitmap.Config.ARGB_8888, true), bmp);
+                        Imgproc.cvtColor(bmp, bmp, Imgproc.COLOR_RGB2BGR,4);
                         String info = "";
-                        LightResults.Light l = GetLight(out);
+                        LightResults.Light l = GetLight(bmp);
+                        Imgproc.cvtColor(bmp, bmp, Imgproc.COLOR_BGR2RGB,4);
+                        crop = Bitmap.createBitmap(bmp.cols(), bmp.rows(), Bitmap.Config.ARGB_8888);
+                        Utils.matToBitmap(bmp, crop);
                         if (l == LightResults.Light.LIGHT_GREEN) {
                             p.setStyle(Paint.Style.STROKE);
                             p.setColor(Color.GREEN);
@@ -308,7 +349,8 @@ public class MainActivity extends Activity {
                             info = "Light not detected!";
                         }
                         result = result + info + "\n";
-                        SaveOdp(image, boundingBox, l);
+
+                        SaveOdp(crop, boundingBox, l);
                     }
                     String text = label.getLabel();
                     int index = label.getIndex();

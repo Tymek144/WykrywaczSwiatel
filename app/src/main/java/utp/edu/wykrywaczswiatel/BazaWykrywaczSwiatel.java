@@ -9,6 +9,7 @@ import android.graphics.Paint;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
@@ -17,6 +18,8 @@ import java.util.ArrayList;
 public class BazaWykrywaczSwiatel extends AppCompatActivity {
 
     private RoomConnect roomConnect;
+
+    public Button clear;
 
     public static Bitmap trafficLight;
     public static String lightName;
@@ -27,18 +30,22 @@ public class BazaWykrywaczSwiatel extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_baza_wykrywacz_swiatel);
         roomConnect= new RoomConnect(this);
+        clear = (Button) findViewById(R.id.clear);
         GetData();
     }
 
     public void ClearAll(View view) {
-        roomConnect.DeleteAll();
-        Toast.makeText(this, "Baza została wyczyśzczona!", Toast.LENGTH_LONG).show();
-        recreate();
+        //roomConnect.DeleteAll();
+        //Toast.makeText(this, "Baza została wyczyśzczona!", Toast.LENGTH_LONG).show();
+        //recreate();
     }
 
     private void GetData()
     {
         ArrayList<LightData> lr = roomConnect.getAllData();
+
+        clear.setText(String.valueOf(lr.size()) + " " + clear.getText());
+
         LinearLayout linearLayout = (LinearLayout) findViewById(R.id.databody);
 
         for (LightData lightData : lr) {
@@ -55,15 +62,16 @@ public class BazaWykrywaczSwiatel extends AppCompatActivity {
                     //tutaj ładowanie wyniku
                     trafficLight = lightData.bitmap;
                     id = lightData.id;
-
+                    lightName = lightData.data.toString() + "\n";
+                    lightName += "Lightness: " + String.valueOf(lightData.lightness) + "\n";
                     if (lightData.light == LightResults.Light.LIGHT_GREEN) {
-                        lightName = "Light green!";
+                        lightName += "Light green!";
                     } else if (lightData.light == LightResults.Light.LIGHT_RED) {
-                        lightName = "Light red!";
+                        lightName += "Light red!";
                     } else if (lightData.light == LightResults.Light.LIGHT_YELLOW) {
-                        lightName = "Light yellow!";
+                        lightName += "Light yellow!";
                     } else if (lightData.light == LightResults.Light.LIGHT_NULL) {
-                        lightName = "Light not detected!";
+                        lightName += "Light not detected!";
                     }
 
                     Intent intent = new Intent(v.getContext(), photoDetails.class);
