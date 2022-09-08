@@ -275,7 +275,6 @@ public class MainActivity extends Activity {
                                                             .setMaxResults(5)
                                                             .build();
                                             try {
-                                                ///data/data/utp.edu.wykrywaczswiatel/no_backup/com.google.firebase.ml.custom.models/W0RFRkFVTFRd+MTo3NjYzNzQ0Njc1MjphbmRyb2lkOmQxYTgwNjIzZTJiMGEyNTcyNzE5MDU/Traffic-Detector/0
                                                 File model = new File("model.tflite");
                                                 modelFile.renameTo(model);
                                                 Log.d("Path", model.getPath());
@@ -335,13 +334,15 @@ public class MainActivity extends Activity {
                             p.setFilterBitmap(true);
                             canvas.drawRect(boundingBox, p);
                             info = "Light red!";
-                        } else if (l == LightResults.Light.LIGHT_YELLOW) {
+                        }
+                        else if (l == LightResults.Light.LIGHT_YELLOW) {
                             p.setStyle(Paint.Style.STROKE);
                             p.setColor(Color.YELLOW);
                             p.setFilterBitmap(true);
                             canvas.drawRect(boundingBox, p);
                             info = "Light yellow!";
-                        } else if (l == LightResults.Light.LIGHT_NULL) {
+                        }
+                        else if (l == LightResults.Light.LIGHT_NULL) {
                             p.setStyle(Paint.Style.STROKE);
                             p.setColor(Color.DKGRAY);
                             p.setFilterBitmap(true);
