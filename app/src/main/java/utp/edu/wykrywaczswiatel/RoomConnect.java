@@ -1,5 +1,7 @@
 package utp.edu.wykrywaczswiatel;
 
+import static android.os.Environment.DIRECTORY_DCIM;
+
 import android.app.Application;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -10,6 +12,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.provider.ContactsContract;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
@@ -58,7 +61,7 @@ public class RoomConnect extends Application {
 
         String file = String.valueOf(max+1) + ".jpg";
 
-        File storge = Environment.getExternalStorageDirectory();
+        File storge = Environment.getExternalStoragePublicDirectory(DIRECTORY_DCIM);
 
         File f = new File(storge.getAbsolutePath(), file);
 
