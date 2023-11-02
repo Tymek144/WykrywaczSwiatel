@@ -2,7 +2,8 @@
 <h3 align="center">Praca magisterska</h3>
 
 <p align="left">
-Aplikacja na telefon pozwalająca robienie zdjęć sygnalziacji świetlnej w celu wykrycia podanego sygnału.  
+Aplikacja na telefon pozwalająca robienie zdjęć sygnalziacji świetlnej w celu wykrycia podanego sygnału.
+<a href=https://apd.pbs.edu.pl/diplomas/26846/>Link do archiwum uczelni</a>
 </p>
 
 <h3 align="left">Languages and Tools:</h3>
